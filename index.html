@@ -1,0 +1,1051 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multiplication Sky Runner</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            /* MODIFICATION: Font changed to Arial, bold */
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            /* END MODIFICATION */
+            background: linear-gradient(to bottom, #87CEEB 0%, #98D8E8 50%, #B0E0E6 100%);
+            height: 100%;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 600px;
+        }
+
+        .clouds {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(ellipse 80px 40px at 100px 100px, white 40%, transparent 50%),
+                radial-gradient(ellipse 60px 30px at 300px 150px, white 40%, transparent 50%),
+                radial-gradient(ellipse 100px 50px at 500px 80px, white 40%, transparent 50%),
+                radial-gradient(ellipse 70px 35px at 700px 200px, white 40%, transparent 50%);
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-200px); }
+        }
+
+        /* Updated UI Panel */
+        .ui-panel {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 20px; /* Increased padding */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+            /* Removed fixed height */
+        }
+
+        /* game-stats is now the main flex container */
+        .game-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            /* Removed margin-bottom */
+        }
+
+        /* NEW CLASS for left-side stats */
+        .stats-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: #fff;
+            padding: 5px 10px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .level-display {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2E8B57;
+        }
+
+        /* MODIFIED: Adjusted lives display alignment */
+        .lives-display {
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #d9534f;
+            /* Added padding to vertically center hearts better */
+            padding-top: 2px;
+        }
+
+        /* MODIFIED: Increased gap for new heart shape */
+        #lives-container {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* MODIFIED: New, cleaner CSS heart shape */
+        .heart {
+            position: relative;
+            width: 20px;
+            height: 18px;
+        }
+
+        .heart::before,
+        .heart::after {
+            content: "";
+            position: absolute;
+            left: 10px; /* Half of width */
+            top: 0;
+            width: 10px; /* Half of width */
+            height: 16px; /* Taller part */
+            background: #FF6B6B;
+            border-radius: 10px 10px 0 0;
+            transform: rotate(-45deg);
+            transform-origin: 0 100%;
+        }
+
+        .heart::after {
+            left: 0;
+            transform: rotate(45deg);
+            transform-origin: 100% 100%;
+        }
+        /* END HEART MODIFICATION */
+
+        .score-display {
+            font-size: 16px;
+            font-weight: bold;
+            color: #4169E1;
+            background: #fff;
+            padding: 5px 10px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Question is now center element */
+        .question-display {
+            text-align: center;
+            font-size: 28px; /* Doubled size */
+            font-weight: bold;
+            color: #2E8B57;
+            background: #F0F8FF;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 2px solid #4169E1;
+            flex-grow: 1; /* Makes it take center space */
+            margin: 0 20px; /* Adds spacing */
+        }
+
+        /* Cinnamoroll character style */
+        .character {
+            position: absolute;
+            left: 100px;
+            width: 80px;  /* Increased size for image */
+            height: 80px; /* Increased size for image */
+            /* MODIFICATION: Removed placeholder background-image */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            transition: top 0.1s ease;
+            z-index: 50;
+        }
+
+       .answer-option {
+            position: absolute;
+            right: -1200px; /* Start position is now the right edge */
+            width: 80px;
+            height: 80px;
+            
+            /* Single pink color style */
+            background: #FFB6C1;
+            border: 3px solid #FF69B4;
+            /* END MODIFICATION */
+
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px; /* Doubled size */
+            font-weight: bold;
+            color: black; 
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            /* Added transform animation */
+            animation: moveLeft 8s linear infinite, candyShine 2s ease-in-out infinite alternate;
+            position: relative;
+        }
+
+        .answer-option::before {
+            content: '🍬'; /* All are candies */
+            position: absolute;
+            top: -8px;
+            right: -5px;
+            font-size: 20px;
+            z-index: 1;
+        }
+
+        /* REMOVED .answer-option::after to remove white spot */
+
+        @keyframes candyShine {
+            0% { box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 8px rgba(255, 255, 255, 0.3); }
+            100% { box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), inset 0 4px 12px rgba(255, 255, 255, 0.5); }
+        }
+
+        /* Use transform for smooth animation */
+        @keyframes moveLeft {
+            0% { 
+                transform: translateX(0); 
+            }
+            100% { 
+                transform: translateX(calc(-100vw - 600px)); 
+            }
+        }
+
+        .game-over-screen, .level-complete-screen, .level-select-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .level-select-screen {
+            display: flex;
+        }
+
+        .level-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .level-btn {
+            padding: 20px;
+            text-align: left;
+            background: linear-gradient(45deg, #32CD32, #228B22);
+            min-width: 250px;
+        }
+
+        .level-btn:hover {
+            background: linear-gradient(45deg, #228B22, #006400);
+        }
+
+        .level-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .level-desc {
+            font-size: 16px;
+            margin-bottom: 3px;
+            opacity: 0.9;
+        }
+
+        .level-example {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .modal {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal h2 {
+            color: #2E8B57;
+            margin-bottom: 20px;
+            font-size: 36px;
+        }
+
+        .modal p {
+            font-size: 20px;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #4169E1, #6495ED);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        /* REMOVED .controls-info CSS block */
+
+        .touch-controls {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 60;
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, rgba(255, 107, 107, 0.4), rgba(255, 142, 142, 0.4));
+            border: 2px solid rgba(255, 68, 68, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-btn.up {
+            background: linear-gradient(45deg, rgba(76, 175, 80, 0.4), rgba(102, 187, 106, 0.4));
+            border-color: rgba(56, 142, 60, 0.5);
+        }
+
+        .control-btn.down {
+            background: linear-gradient(45deg, rgba(33, 150, 243, 0.4), rgba(66, 165, 245, 0.4));
+            border-color: rgba(25, 118, 210, 0.5);
+        }
+
+        .feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            z-index: 150;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .feedback.correct {
+            color: #32CD32;
+        }
+
+        .feedback.wrong {
+            color: #FF4500;
+        }
+
+        .feedback.show {
+            opacity: 1;
+        }
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="game-container">
+   <div class="clouds"></div>
+
+   <div class="ui-panel">
+    <div class="game-stats">
+        <div class="stats-left">
+            <div class="level-display">Level <span id="current-level">1</span></div>
+            <div class="lives-display">
+                <div id="lives-container">
+                   <div class="heart"></div>
+                   <div class="heart"></div>
+                   <div class="heart"></div>
+                </div>
+            </div>
+        </div>
+        <div class="question-display" id="question">2 × 3 = ?</div>
+        <div class="score-display">Score: <span id="score">0</span></div>
+    </div>
+   </div>
+   <div class="character" id="character" style="background-image: url('image/cinnamoroll.png');"></div>
+   <div class="touch-controls">
+    <div class="control-btn up" id="up-btn">
+     ↑
+    </div>
+    <div class="control-btn down" id="down-btn">
+     ↓
+    </div>
+   </div>
+   <div class="feedback" id="feedback"></div>
+   <div class="game-over-screen" id="game-over-screen">
+    <div class="modal">
+     <h2>Game Over!</h2>
+     <p>Final Score: <span id="final-score">0</span></p>
+     <p>Level Reached: <span id="final-level">1</span></p><button class="btn" onclick="restartGame()">Play Again</button>
+    </div>
+   </div>
+   <div class="level-complete-screen" id="level-complete-screen">
+    <div class="modal">
+     <h2>Level Complete! 🎉</h2>
+     <p>Great job! Ready for the next challenge?</p><button class="btn" onclick="nextLevel()">Next Level</button>
+    </div>
+   </div>
+   <div class="level-select-screen" id="level-select-screen">
+    <div class="modal">
+     <h2>🎯 Multiplication Sky Runner</h2>
+     <p>Choose your difficulty level:</p>
+     <div class="level-buttons"><button class="btn level-btn" onclick="startGameAtLevel(1)">
+       <div class="level-title">
+        Level 1
+       </div>
+       <div class="level-desc">
+        1 × 1 digit
+       </div>
+       <div class="level-example">
+        Example: 3 × 7
+       </div></button> <button class="btn level-btn" onclick="startGameAtLevel(2)">
+       <div class="level-title">
+        Level 2
+       </div>
+       <div class="level-desc">
+        2 × 1 digit
+       </div>
+       <div class="level-example">
+        Example: 23 × 4
+       </div></button> <button class="btn level-btn" onclick="startGameAtLevel(3)">
+       <div class="level-title">
+        Level 3
+       </div>
+       <div class="level-desc">
+        3 × 2 digit
+       </div>
+       <div class="level-example">
+        Example: 145 × 12
+       </div></button>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+        class MultiplicationGame {
+            constructor() {
+                this.level = 1;
+                this.lives = 3;
+                this.score = 0;
+                this.currentQuestion = null;
+                this.correctAnswer = null;
+                this.character = document.getElementById('character');
+                this.characterPosition = 250; // Middle position
+                this.gameRunning = false;
+                this.questionCount = 0;
+                this.questionsPerLevel = 30;
+                this.activeCandies = new Set();
+                this.questionAnswered = false;
+                this.regenerating = false; // Add this
+                
+                // Audio synthesizers
+                this.correctSound = null;
+                this.wrongSound = null;
+
+                // MODIFICATION: Set image paths to user's "image" folder
+                this.characterCryingUrl = 'image/crying.png';
+                this.characterNormalUrl = 'image/cinnamoroll.png';
+                
+                this.initializeGame();
+                this.setupControls();
+                this.initializeAudio();
+            }
+
+            // Initialize audio components
+            initializeAudio() {
+                try {
+                    // "Cheerful" sound
+                    this.correctSound = new Tone.Synth({
+                        oscillator: { type: 'triangle' },
+                        envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.2 }
+                    }).toDestination();
+
+                    // "Crash" sound
+                    this.wrongSound = new Tone.NoiseSynth({
+                        noise: { type: 'white' },
+                        envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                    }).toDestination();
+                } catch (e) {
+                    console.error('Failed to initialize audio:', e);
+                    // Create dummy objects if Tone.js failed (e.g., in a restricted environment)
+                    const dummySound = { triggerAttackRelease: () => {} };
+                    this.correctSound = this.correctSound || dummySound;
+                    this.wrongSound = this.wrongSound || dummySound;
+                }
+            }
+
+            initializeGame() {
+                this.character.style.top = this.characterPosition + 'px';
+                this.character.style.backgroundImage = `url('${this.characterNormalUrl}')`;
+                this.updateUI();
+            }
+
+            setupControls() {
+                // Keyboard controls
+                document.addEventListener('keydown', (e) => {
+                    if (!this.gameRunning) return;
+                    
+                    switch(e.key) {
+                        case 'ArrowUp':
+                        case 'w':
+                        case 'W':
+                            this.moveCharacter(-60);
+                            break;
+                        case 'ArrowDown':
+                        case 's':
+                        case 'S':
+                            this.moveCharacter(60);
+                            break;
+                    }
+                });
+
+                // Touch controls
+                const upBtn = document.getElementById('up-btn');
+                const downBtn = document.getElementById('down-btn');
+
+                upBtn.addEventListener('click', () => {
+                    if (this.gameRunning) this.moveCharacter(-60);
+                });
+
+                downBtn.addEventListener('click', () => {
+                    if (this.gameRunning) this.moveCharacter(60);
+                });
+
+                // Touch events for better mobile experience
+                upBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (this.gameRunning) this.moveCharacter(-60);
+                });
+
+                downBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (this.gameRunning) this.moveCharacter(60);
+                });
+            }
+
+            moveCharacter(delta) {
+                // Update vertical constraints to account for larger UI panel
+                const uiPanelHeight = document.querySelector('.ui-panel').offsetHeight;
+                // Use a margin that accounts for the UI panel
+                const minTop = uiPanelHeight + 20; 
+                // The maxTop should allow the bottom of the character (80px height) to be 10px from the bottom safe area
+                const maxTop = document.querySelector('.game-container').clientHeight - 90; 
+                
+                this.characterPosition = Math.max(minTop, Math.min(maxTop, this.characterPosition + delta));
+                this.character.style.top = this.characterPosition + 'px';
+            }
+
+            generateQuestion() {
+                let num1, num2;
+                let isValid = false;
+                
+                // --- MODIFICATION: Loop until a valid question is generated ---
+                while(!isValid) {
+                    switch(this.level) {
+                        case 1: // 1 digit × 1 digit (No 1s)
+                            // MODIFICATION: Range is 2-9
+                            num1 = Math.floor(Math.random() * 8) + 2; 
+                            num2 = Math.floor(Math.random() * 8) + 2;
+                            break;
+                        case 2: // 2 digits × 1 digit (No 1s for single digit)
+                            num1 = Math.floor(Math.random() * 90) + 10;
+                            // MODIFICATION: Range is 2-9
+                            num2 = Math.floor(Math.random() * 8) + 2;
+                            break;
+                        case 3: // 2-3 digits × 2 digits
+                            num1 = Math.floor(Math.random() * 900) + 100;
+                            num2 = Math.floor(Math.random() * 90) + 10;
+                            break;
+                        default: // Fallback for safety
+                            num1 = 2;
+                            num2 = 2;
+                    }
+                    
+                    this.correctAnswer = num1 * num2;
+                    this.currentQuestion = `${num1} × ${num2} = ?`;
+
+                    // Check if the answer is a valid number
+                    if (this.correctAnswer !== null && this.correctAnswer !== undefined && !isNaN(this.correctAnswer)) {
+                        isValid = true;
+                    } else {
+                        console.error("CRITICAL BUG: correct_answer is invalid! Regenerating.", num1, num2, this.correctAnswer);
+                        // Loop will repeat
+                    }
+                }
+                // --- END MODIFICATION ---
+                
+                this.questionAnswered = false; 
+                
+                document.getElementById('question').textContent = this.currentQuestion;
+                
+                this.generateAnswerOptions();
+            }
+
+            generateAnswerOptions() {
+                // Clear existing options
+                document.querySelectorAll('.answer-option').forEach(option => option.remove());
+                
+                // 1. Calculate boundaries dynamically
+                const uiPanelHeight = document.querySelector('.ui-panel').offsetHeight;
+                const containerHeight = document.querySelector('.game-container').clientHeight;
+                
+                // Define the playable vertical range
+                const minPlayableY = uiPanelHeight + 20; // Start below the UI panel
+                // The max playable Y is set lower to prevent the candy's bottom edge from going out of bounds
+                // 90 is character max top, we need to subtract more to account for candy size (80px) and margin
+                const maxPlayableY = containerHeight - 180; 
+                
+                // 2. Define 3 non-overlapping vertical regions
+                const regionHeight = (maxPlayableY - minPlayableY) / 3;
+                
+                // Array of regions: [startY, endY]
+                const regions = [
+                    [minPlayableY, minPlayableY + regionHeight],                 // Top 1/3
+                    [minPlayableY + regionHeight, minPlayableY + 2 * regionHeight], // Middle 1/3
+                    [minPlayableY + 2 * regionHeight, maxPlayableY]             // Bottom 1/3
+                ];
+                
+                // 3. Prepare Answers and Shuffle them
+                const wrongAnswers = [];
+                while(wrongAnswers.length < 2) { 
+                    let wrongAnswer;
+                    const variation = Math.floor(Math.random() * 20) + 1;
+                    
+                    if(Math.random() < 0.5) {
+                        wrongAnswer = this.correctAnswer + variation;
+                    } else {
+                        wrongAnswer = Math.max(1, this.correctAnswer - variation);
+                    }
+                    
+                    if(wrongAnswer !== this.correctAnswer && !wrongAnswers.includes(wrongAnswer)) {
+                        wrongAnswers.push(wrongAnswer);
+                    }
+                }
+                
+                const allAnswers = [this.correctAnswer, wrongAnswers[0], wrongAnswers[1]];
+                
+                // Shuffle the answers so the correct one isn't always in the same region
+                for(let i = allAnswers.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [allAnswers[i], allAnswers[j]] = [allAnswers[j], allAnswers[i]];
+                }
+                
+                if(!allAnswers.map(Number).includes(Number(this.correctAnswer))) {
+                    console.error('Correct answer missing after shuffle!');
+                    allAnswers[0] = this.correctAnswer; // Force it in if something went wrong
+                }
+                
+                this.activeCandies = new Set();
+                let correctIsPresent = false; 
+                
+                // 4. Place Answers Randomly within their assigned region
+                allAnswers.forEach((answer, index) => {
+                    const [regionMin, regionMax] = regions[index];
+                    
+                    // Calculate random Y position within the assigned region
+                    // Subtract 80 (answer-option height) from regionMax to prevent the candy from spawning too low
+                    const optionY = Math.random() * (regionMax - regionMin - 80) + regionMin;
+
+                    const option = document.createElement('div');
+                    option.className = 'answer-option';
+                    option.textContent = answer;
+                    option.style.top = optionY + 'px'; // Use random position in the region
+                    option.dataset.answer = answer;
+                    const candyId = `candy_${Date.now()}_${index}`;
+                    option.dataset.candyId = candyId;
+                    
+                    this.activeCandies.add(candyId);
+                    
+                    if(Number(answer) === Number(this.correctAnswer)) {
+                        option.classList.add('correct');
+                        correctIsPresent = true; 
+                    } else {
+                        option.classList.add('wrong');
+                    }
+                    
+                    document.querySelector('.game-container').appendChild(option);
+                    
+                    const collisionInterval = setInterval(() => {
+                        if(!option.parentNode || !this.gameRunning || !this.activeCandies.has(option.dataset.candyId)) {
+                            clearInterval(collisionInterval);
+                            return;
+                        }
+                        this.checkCollision(option, collisionInterval);
+                    }, 50);
+                    
+                    setTimeout(() => {
+                        if(option.parentNode && this.activeCandies.has(option.dataset.candyId)) {
+                            option.remove();
+                            this.activeCandies.delete(option.dataset.candyId);
+                            clearInterval(collisionInterval);
+
+                            if(option.classList.contains('correct') && !this.questionAnswered) {
+                                this.handleMiss();
+                            }
+                        }
+                    }, 8000);
+                });
+                
+                // Add a final check
+                if (!correctIsPresent) {
+                    console.error("CRITICAL BUG: No candy was marked as correct.", this.correctAnswer, allAnswers);
+                    console.log(`Current level: ${this.level}, Question: ${this.currentQuestion}, Correct Answer: ${this.correctAnswer}`);
+                }
+                
+                console.log('Generated answers:', allAnswers, 'Correct answer:', this.correctAnswer);
+            }
+
+            checkCollision(option, collisionInterval) {
+                if(!this.gameRunning || !option.parentNode || !this.activeCandies.has(option.dataset.candyId)) return;
+                
+                const optionRect = option.getBoundingClientRect();
+                const characterRect = this.character.getBoundingClientRect();
+                
+                if(optionRect.right < 0) {
+                    return; 
+                }
+                
+                const collision = !(optionRect.right < characterRect.left - 10 || 
+                                  optionRect.left > characterRect.right + 10 || 
+                                  optionRect.bottom < characterRect.top - 10 || 
+                                  optionRect.top > characterRect.bottom + 10);
+                
+                if(collision) {
+                    const answer = parseInt(option.dataset.answer);
+                    const isCorrect = option.classList.contains('correct');
+                    const candyId = option.dataset.candyId;
+                    
+                    if(option.dataset.caught) return;
+                    option.dataset.caught = 'true';
+                    
+                    this.activeCandies.delete(candyId);
+                    
+                    option.remove();
+                    clearInterval(collisionInterval);
+                    
+                    document.querySelectorAll('.answer-option').forEach(opt => {
+                        if(opt !== option && this.activeCandies.has(opt.dataset.candyId)) {
+                            this.activeCandies.delete(opt.dataset.candyId);
+                            opt.remove();
+                        }
+                    });
+                    
+                    if(isCorrect) {
+                        this.handleCorrectAnswer();
+                    } else {
+                        this.handleWrongAnswer();
+                    }
+                }
+            }
+
+            handleCorrectAnswer() {
+                this.questionAnswered = true;
+                this.score += 1;
+                this.questionCount++;
+                this.showFeedback('Correct! +1 Point', 'correct');
+                this.correctSound.triggerAttackRelease('C5', '8n', Tone.now()); // Play cheerful sound
+                this.updateUI();
+                
+                /* MODIFICATION: Added 1.5s delay for consistency before next action */
+                setTimeout(() => {
+                    if(this.questionCount >= this.questionsPerLevel) {
+                        this.completeLevel();
+                    } else {
+                        this.generateQuestion();
+                    }
+                }, 1500);
+            }
+
+            handleWrongAnswer() {
+                this.questionAnswered = true; 
+                this.lives--;
+                this.questionCount++; /* MODIFICATION: Added question count */
+                this.showFeedback('Wrong! -1 Life', 'wrong');
+                this.wrongSound.triggerAttackRelease('0.1', Tone.now()); // Play crash sound
+                this.updateUI();
+                
+                const characterEl = document.getElementById('character');
+                if (characterEl) {
+                    // MODIFICATION: Use image path
+                    characterEl.style.backgroundImage = `url('${this.characterCryingUrl}')`;
+                    
+                    // MODIFICATION: Changed timer to 1 second (1000ms)
+                    setTimeout(() => {
+                        // MODIFICATION: Use image path
+                        characterEl.style.backgroundImage = `url('${this.characterNormalUrl}')`;
+                    }, 1000);
+                }
+                
+                /* MODIFICATION: Unified logic inside 1.5s delay */
+                setTimeout(() => {
+                    if(this.lives <= 0) {
+                        this.gameOver();
+                    } else if (this.questionCount >= this.questionsPerLevel) {
+                        this.completeLevel();
+                    } else {
+                        this.generateQuestion();
+                    }
+                }, 1500);
+            }
+
+            handleMiss() {
+                if (this.questionAnswered) return; 
+
+                this.questionAnswered = true;
+                this.lives--;
+                this.questionCount++; /* MODIFICATION: Added question count */
+                this.showFeedback('Missed! -1 Life', 'wrong');
+                this.wrongSound.triggerAttackRelease('0.1', Tone.now()); // Play crash sound for miss
+                this.updateUI();
+                
+                document.querySelectorAll('.answer-option').forEach(opt => {
+                    if(this.activeCandies.has(opt.dataset.candyId)) {
+                        this.activeCandies.delete(opt.dataset.candyId);
+                        opt.remove();
+                    }
+                });
+                
+                /* MODIFICATION: Unified logic inside 1.5s delay */
+                setTimeout(() => {
+                    if(this.lives <= 0) {
+                        this.gameOver();
+                    } else if (this.questionCount >= this.questionsPerLevel) {
+                        this.completeLevel();
+                    } else {
+                        this.generateQuestion();
+                    }
+                }, 1500);
+            }
+
+            showFeedback(text, type) {
+                const feedback = document.getElementById('feedback');
+                feedback.textContent = text;
+                feedback.className = `feedback ${type} show`;
+                
+                setTimeout(() => {
+                    feedback.classList.remove('show');
+                }, 1000);
+            }
+
+            updateUI() {
+                document.getElementById('current-level').textContent = this.level;
+                document.getElementById('score').textContent = this.score;
+                
+                const livesContainer = document.getElementById('lives-container');
+                livesContainer.innerHTML = '';
+                for(let i = 0; i < this.lives; i++) {
+                    const heart = document.createElement('div');
+                    heart.className = 'heart';
+                    livesContainer.appendChild(heart);
+                }
+            }
+
+            startLevel() {
+                this.gameRunning = true;
+                this.questionCount = 0;
+                this.generateQuestion();
+            }
+
+            completeLevel() {
+                this.gameRunning = false;
+                
+                if(this.level < 3) {
+                    document.getElementById('level-complete-screen').style.display = 'flex';
+                } else {
+                    this.gameWin();
+                }
+            }
+
+            nextLevel() {
+                this.level++;
+                this.lives = Math.min(3, this.lives + 1); // Bonus life
+                document.getElementById('level-complete-screen').style.display = 'none';
+                this.updateUI();
+                this.startLevel();
+            }
+
+            gameWin() {
+                document.getElementById('final-score').textContent = this.score;
+                document.getElementById('final-level').textContent = this.level;
+                document.querySelector('#game-over-screen h2').textContent = 'Congratulations! 🏆';
+                document.querySelector('#game-over-screen p').innerHTML = 
+                    `You completed all levels!<br>Final Score: <span id="final-score">${this.score}</span>`;
+                document.getElementById('game-over-screen').style.display = 'flex';
+            }
+
+            gameOver() {
+                this.gameRunning = false;
+                document.getElementById('final-score').textContent = this.score;
+                document.getElementById('final-level').textContent = this.level;
+                document.getElementById('game-over-screen').style.display = 'flex';
+            }
+
+            restart() {
+                this.level = 1;
+                this.lives = 3;
+                this.score = 0;
+                this.questionCount = 0;
+                
+                // MODIFICATION: Reset character position dynamically and CORRECTLY
+                const uiPanelHeight = document.querySelector('.ui-panel').offsetHeight;
+                const containerHeight = document.querySelector('.game-container').clientHeight;
+                const minTop = uiPanelHeight + 20;
+                // Consistent Max Top (height - char_height - margin_buffer)
+                const maxTop = containerHeight - 90; 
+                this.characterPosition = minTop + ((maxTop - minTop) / 2); // Center it
+                // END MODIFICATION
+                
+                this.character.style.top = this.characterPosition + 'px';
+                
+                // MODIFICATION: Use image path
+                document.getElementById('character').style.backgroundImage = `url('${this.characterNormalUrl}')`;
+                
+                document.querySelectorAll('.answer-option').forEach(option => option.remove());
+                
+                document.getElementById('game-over-screen').style.display = 'none';
+                document.getElementById('level-complete-screen').style.display = 'none';
+                
+                this.updateUI();
+                this.startLevel();
+            }
+        }
+
+        let game;
+
+        function restartGame() {
+            document.getElementById('level-select-screen').style.display = 'flex';
+            document.getElementById('game-over-screen').style.display = 'none';
+            // MODIFICATION: Use image path
+            document.getElementById('character').style.backgroundImage = "url('image/cinnamoroll.png')";
+        }
+
+        function nextLevel() {
+            game.nextLevel();
+        }
+
+        // Made this function async to handle Tone.start()
+        async function startGameAtLevel(selectedLevel) {
+            // Start AudioContext on user gesture.
+            if (window.Tone && Tone.context.state !== 'running') {
+                try {
+                    await Tone.start();
+                    console.log('AudioContext started');
+                } catch (e) {
+                    console.error('AudioContext failed to start:', e);
+                }
+            }
+            // END NEW
+
+            document.getElementById('level-select-screen').style.display = 'none';
+            game = new MultiplicationGame();
+            game.level = selectedLevel;
+
+            // --- NEW MODIFICATION ---
+            // Set the initial character position dynamically
+            // This ensures it matches the move/candy logic right from the start.
+            const uiPanelHeight = document.querySelector('.ui-panel').offsetHeight;
+            const containerHeight = document.querySelector('.game-container').clientHeight;
+            const minTop = uiPanelHeight + 20;
+            const maxTop = containerHeight - 90;
+            game.characterPosition = minTop + ((maxTop - minTop) / 2); // Center it
+            game.character.style.top = game.characterPosition + 'px';
+            // --- END NEW MODIFICATION ---
+
+            game.updateUI();
+            game.startLevel();
+        }
+
+        window.addEventListener('load', () => {
+            document.getElementById('level-select-screen').style.display = 'flex';
+        });
+
+        if (window.ElementSDK) {
+            const sdk = window.ElementSDK.init();
+            
+            const defaultConfig = {
+                game_title: "Multiplication Sky Runner"
+            };
+
+            // Fixed typo game_T_title -> game_title
+            document.querySelector('#level-select-screen h2').textContent = defaultConfig.game_title;
+            
+            sdk.onConfigDidChange((config) => {
+                const title = config.game_title || defaultConfig.game_title;
+                document.querySelector('#level-select-screen h2').textContent = title;
+            });
+            
+            sdk.readiness.setReady();
+            
+            sdk.expose.capabilities({
+                config: {
+                    props: [
+                        {
+                            id: "game_title",
+                            label: "Game Title",
+                            type: "text"
+                        }
+                    ]
+                },
+                mapToCapabilities: (config) => ({
+                    recolorables: [],
+                    borderables: [],
+                    fontEditable: undefined,
+                    fontSizeable: undefined
+                }),
+                mapToEditPanelValues: (config) => new Map([
+                    ["game_title", config.game_title || defaultConfig.game_title]
+                ])
+            });
+        }
+    </script>
+ </body>
+</html>
