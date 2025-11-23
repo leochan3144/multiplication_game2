@@ -510,10 +510,10 @@
                     }).toDestination();
 
                     // "Crash" sound
-                    this.wrongSound = new Tone.NoiseSynth({
-                        noise: { type: 'white' },
-                        envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
-                    }).toDestination();
+this.wrongSound = new Tone.Synth({
+    oscillator: { type: 'sawtooth' },
+    envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.8 }
+}).toDestination();
                 } catch (e) {
                     console.error('Failed to initialize audio:', e);
                     // Create dummy objects if Tone.js failed (e.g., in a restricted environment)
@@ -810,7 +810,9 @@
                 this.lives--;
                 this.questionCount++; /* MODIFICATION: Added question count */
                 this.showFeedback('Wrong! -1 Life', 'wrong');
-                this.wrongSound.triggerAttackRelease('0.1', Tone.now()); // Play crash sound
+                const now = Tone.now();
+this.wrongSound.triggerAttackRelease("F3", "2n", now);
+this.wrongSound.frequency.rampTo("F1", 0.5, now);
                 this.updateUI();
                 
                 const characterEl = document.getElementById('character');
@@ -844,7 +846,9 @@
                 this.lives--;
                 this.questionCount++; /* MODIFICATION: Added question count */
                 this.showFeedback('Missed! -1 Life', 'wrong');
-                this.wrongSound.triggerAttackRelease('0.1', Tone.now()); // Play crash sound for miss
+                const now = Tone.now();
+this.wrongSound.triggerAttackRelease("F3", "2n", now);
+this.wrongSound.frequency.rampTo("F1", 0.5, now);
                 this.updateUI();
                 
                 document.querySelectorAll('.answer-option').forEach(opt => {
